@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Ziyan Wei</title>
+<meta name="description" content="Ziyan Wei, mathematics at Rutgers University.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<style>
+  /* Layout: Swiss split on a 24px module. Pinstriped white page; type sits in a labels | text grid.
+     Wide screens: live pigs fill the right side, faded still pigs sit behind the type.
+     Narrow screens: live pigs form a band above the name, faded still pigs continue down the page. */
+  :root {
+    --paper: #FFFFFF;
+    --stripe: #E9E9E9;
+    --ink: #111111;
+    --muted: #707070;
+    --accent: #E2001A;           /* Swiss red, only on the problem numbers */
+
+    --type: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    --m: 24px;                    /* module: stripe pitch and spacing unit */
+    --label-w: 11rem;
+    --text-w: 34rem;
+    --name: clamp(3.2rem, 1.6rem + 5.4vw, 6.6rem);
+    --body: 1.0625rem;
+    --small: 0.8125rem;
+    --band: clamp(210px, 34vh, 300px);
+    --faint: 0.26;                /* opacity of the pigs behind the type */
+    color-scheme: light;
+  }
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    position: relative;
+    margin: 0;
+    padding-top: var(--band);
+    background-color: var(--paper);
+    background-image: repeating-linear-gradient(90deg, var(--stripe) 0 1px, transparent 1px var(--m));
+    color: var(--ink);
+    font-family: var(--type);
+    font-size: var(--body);
+    line-height: 1.5;
+    font-kerning: normal;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+  p { margin: 0; }
+
+  /* ---------- pig field ---------- */
+  #pigfield {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .pig {
+    position: absolute;
+    width: var(--pw);
+    height: calc(var(--pw) * 0.8835);
+    transform: rotate(var(--rot)) scaleX(var(--flip));
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pig.faint { opacity: var(--faint); pointer-events: none; }
+  .pig img {
+    display: block;
+    max-width: none;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .pig .still { width: 100%; height: 100%; }
+  .pig .anim { position: absolute; visibility: hidden; }
+  .pig .anim.px { image-rendering: pixelated; }
+  .pig .anim.fade-top {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 24%);
+  }
+  .pig.playing { z-index: 3; }
+  .pig.playing .still { visibility: hidden; }
+  .pig.playing .anim { visibility: visible; }
+
+  /* ---------- type grid ---------- */
+  .page {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;          /* empty areas belong to the pigs */
+    padding-left: max(24px, env(safe-area-inset-left, 0px));
+    padding-right: max(24px, env(safe-area-inset-right, 0px));
+    padding-block: 12px calc(var(--m) * 3);
+  }
+  .grid {
+    max-width: calc(var(--label-w) + var(--m) + var(--text-w));
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--m) * 2);
+  }
+  .grid > * { pointer-events: auto; }
+
+  .top { display: flex; flex-direction: column; gap: 18px; }
+  .name {
+    margin: 0;
+    font-size: var(--name);
+    font-weight: 700;
+    font-stretch: 82%;
+    line-height: 0.9;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+  .role {
+    font-weight: 500;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--m);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: var(--label-w) minmax(0, var(--text-w));
+    column-gap: var(--m);
+    row-gap: 10px;
+    border-top: 2px solid var(--ink);
+    padding-top: 10px;
+    scroll-margin-top: var(--m);
+  }
+  .label {
+    margin: 0;
+    font-size: var(--body);
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+  }
+  .text { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+  .pairs {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 4px var(--m);
+    align-items: baseline;
+  }
+  .pairs dt { font-weight: 700; }
+  .pairs dd { margin: 0; min-width: 0; }
+  .pairs.small dt { font-size: var(--small); color: var(--muted); }
+
+  .problems { list-style: none; margin: 0; padding: 0; counter-reset: problem; gap: 22px; }
+  .problems li {
+    counter-increment: problem;
+    display: grid;
+    grid-template-columns: var(--m) minmax(0, 1fr);
+    row-gap: 8px;
+  }
+  .problems li::before {
+    content: counter(problem);
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .problems li > * { grid-column: 2; }
+  .empty { color: var(--muted); }
+  .email { overflow-wrap: anywhere; }
+
+  .foot {
+    border-top-width: 1px;
+    font-size: var(--small);
+    color: var(--muted);
+  }
+  .foot .label { font-size: var(--small); font-weight: 500; color: var(--muted); }
+  .foot .text { display: block; }
+
+  a { color: inherit; text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (min-width: 1100px) {
+    body { padding-top: 0; }
+    #pigfield { position: fixed; }
+    .page { padding-block: calc(var(--m) * 4) calc(var(--m) * 3); }
+    .grid { margin-left: calc(var(--m) * 2); }
+  }
+  @media (max-width: 680px) {
+    .row { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .pairs.small { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+    .pairs.small dd + dt { margin-top: 6px; }
+  }
+</style>
+</head>
+<body>
+<div id="pigfield" aria-hidden="true"></div>
+
+<div class="page">
+  <main class="grid">
+    <header class="top">
+      <h1 class="name">Ziyan Wei</h1>
+      <p class="role"><span>Mathematics</span><span>Rutgers University</span></p>
+    </header>
+
+    <section class="row" id="about" aria-labelledby="about-h">
+      <h2 class="label" id="about-h">About</h2>
+      <div class="text">
+        <p>I am a mathematics honors undergraduate at Rutgers University, graduating in May 2027. I transferred to Rutgers in 2025 from Ocean University of China.</p>
+        <p>I work on the combinatorics around Coxeter groups and Hecke algebras, and on Macdonald-type polynomials. I also formalize mathematics in Lean&nbsp;4 and contribute to Mathlib.</p>
+        <p>I am applying to graduate programs for 2027.</p>
+        <dl class="pairs">
+          <dt>Interests</dt>
+          <dd>Kazhdan–Lusztig theory, Schubert calculus, geometric representation theory, arithmetic Langlands, formal verification in Lean</dd>
+        </dl>
+      </div>
+    </section>
+
+    <section class="row" id="research" aria-labelledby="research-h">
+      <h2 class="label" id="research-h">Research problems</h2>
+      <ol class="text problems">
+        <li>
+          <p>Kazhdan–Lusztig polynomials on special Bruhat intervals, through the combinatorial invariance conjecture.</p>
+          <dl class="pairs small">
+            <dt>Mentor</dt>
+            <dd>Grant Barkley, Harvard</dd>
+            <dt>Preliminary result</dt>
+            <dd>A relation between Kazhdan–Lusztig <span style="white-space: nowrap">R-polynomials</span> and quivers</dd>
+          </dl>
+        </li>
+        <li>
+          <p>Polynomiality and positivity of composition Kostka functions.</p>
+          <dl class="pairs small">
+            <dt>Mentor</dt>
+            <dd>Siddhartha Sahi, Rutgers</dd>
+            <dt>Preliminary result</dt>
+            <dd>A proof of polynomiality</dd>
+          </dl>
+        </li>
+      </ol>
+    </section>
+
+    <section class="row" id="notes" aria-labelledby="notes-h">
+      <h2 class="label" id="notes-h">Notes</h2>
+      <div class="text">
+        <p class="empty">Forthcoming.</p>
+      </div>
+    </section>
+
+    <section class="row" id="contact" aria-labelledby="contact-h">
+      <h2 class="label" id="contact-h">Contact</h2>
+      <div class="text">
+        <p class="email">zw810 [at] scarletmail.rutgers.edu</p>
+      </div>
+    </section>
+
+    <footer class="row foot">
+      <p class="label">Updated Oct 2026</p>
+      <p class="text">The pigs are Google's Noto emoji. <span id="pig-hint">Some of them move when you hover over them.</span></p>
+    </footer>
+  </main>
+</div>
+
+<script>
+(() => {
+  // Each animation is placed so that its first frame sits exactly on the still pig.
+  // l / t / w are in units of the pig's width; ms is one full cycle.
+  const ASPECT = 0.8835;
+  const STILL = 'assets/pig.webp';
+  const ANIMS = {
+    roll:   { src: 'assets/roll.webp',   l: -0.0445, t: -0.0275, w: 1.0847, ms: 3210 },
+    disco:  { src: 'assets/disco.webp',  l: -0.0024, t: -0.0046, w: 1.0057, ms: 140 },
+    spin:   { src: 'assets/spin.webp',   l:  0.0146, t: -0.1202, w: 1.0482, ms: 1950 },
+    carrot: { src: 'assets/carrot.webp', l: -0.2155, t: -0.3223, w: 1.2622, ms: 1520 },
+    hang:   { src: 'assets/hang.webp',   l: -0.1906, t: -0.4606, w: 1.3213, ms: 3000, cls: 'fade-top' },
+    record: { src: 'assets/record.webp', l: -0.0335, t: -0.0815, w: 1.0683, ms: 720 },
+    jump:   { src: 'assets/jump.webp',   l: -2.817,  t: -1.1857, w: 3.8639, ms: 1840, once: true },
+    pixel:  { src: 'assets/pixel.webp',  l: -0.0783, t: -0.0996, w: 1.2525, ms: 800, cls: 'px' }
+  };
+  const KEYS = Object.keys(ANIMS);
+  const field = document.getElementById('pigfield');
+  const grid = document.querySelector('.grid');
+  const wide = matchMedia('(min-width: 1100px)');
+  const fine = matchMedia('(hover: hover) and (pointer: fine)');
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  const blobs = {};
+  let bust = 0;
+  let built = { w: 0, h: 0, wide: null };
+
+  const getBlob = k => blobs[k] || (blobs[k] = fetch(ANIMS[k].src)
+    .then(r => (r.ok ? r.blob() : null)).catch(() => null));
+
+  // Bridson's Poisson-disc sampling: points fill the area, none closer than r.
+  function poisson(x0, y0, x1, y1, r) {
+    if (x1 <= x0 || y1 <= y0) return [];
+    const cell = r / Math.SQRT2;
+    const gw = Math.ceil((x1 - x0) / cell), gh = Math.ceil((y1 - y0) / cell);
+    const cells = new Int32Array(gw * gh).fill(-1);
+    const pts = [], active = [];
+    const add = (x, y) => {
+      pts.push([x, y]);
+      active.push(pts.length - 1);
+      cells[Math.floor((y - y0) / cell) * gw + Math.floor((x - x0) / cell)] = pts.length - 1;
+    };
+    add(x0 + Math.random() * (x1 - x0), y0 + Math.random() * (y1 - y0));
+    while (active.length) {
+      const ai = Math.floor(Math.random() * active.length);
+      const [px, py] = pts[active[ai]];
+      let placed = false;
+      for (let n = 0; n < 30 && !placed; n++) {
+        const a = Math.random() * 2 * Math.PI, d = r * (1 + Math.random());
+        const x = px + Math.cos(a) * d, y = py + Math.sin(a) * d;
+        if (x < x0 || x >= x1 || y < y0 || y >= y1) continue;
+        const gx = Math.floor((x - x0) / cell), gy = Math.floor((y - y0) / cell);
+        let ok = true;
+        for (let j = Math.max(0, gy - 2); ok && j <= Math.min(gh - 1, gy + 2); j++) {
+          for (let i = Math.max(0, gx - 2); i <= Math.min(gw - 1, gx + 2); i++) {
+            const q = cells[j * gw + i];
+            if (q >= 0) {
+              const dx = pts[q][0] - x, dy = pts[q][1] - y;
+              if (dx * dx + dy * dy < r * r) { ok = false; break; }
+            }
+          }
+        }
+        if (ok) { add(x, y); placed = true; }
+      }
+      if (!placed) { active[ai] = active[active.length - 1]; active.pop(); }
+    }
+    return pts;
+  }
+
+  // hands out animation names evenly, in shuffled rounds
+  function shuffledBag() {
+    let bag = [];
+    return () => {
+      if (!bag.length) {
+        bag = KEYS.slice();
+        for (let i = bag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [bag[i], bag[j]] = [bag[j], bag[i]];
+        }
+      }
+      return bag.pop();
+    };
+  }
+
+  function start(el) {
+    const st = el._st || (el._st = {});
+    clearTimeout(st.stopTimer);
+    st.pendingFinish = false;
+    if (st.on) return;
+    st.on = true;
+    st.t0 = 0;
+    const A = ANIMS[el.dataset.anim];
+    let img = el.querySelector('img.anim');
+    if (!img) {
+      img = new Image();
+      img.className = 'anim' + (A.cls ? ' ' + A.cls : '');
+      img.alt = '';
+      img.draggable = false;
+      img.style.left = `calc(var(--pw) * ${A.l})`;
+      img.style.top = `calc(var(--pw) * ${A.t})`;
+      img.style.width = `calc(var(--pw) * ${A.w})`;
+      el.appendChild(img);
+    }
+    getBlob(el.dataset.anim).then(blob => {
+      if (!st.on) return;
+      // a fresh URL makes the animation restart from its first frame
+      const url = blob ? URL.createObjectURL(blob) : A.src + '?play=' + (++bust);
+      st.url = blob ? url : null;
+      img.src = url;
+      return (img.decode ? img.decode() : Promise.resolve()).catch(() => {}).then(() => {
+        if (!st.on) return;
+        st.t0 = performance.now();
+        el.classList.add('playing');
+        if (st.pendingFinish) finish(el);
+      });
+    });
+  }
+
+  // let the current cycle finish, then go back to the still pig
+  function finish(el) {
+    const st = el._st;
+    if (!st || !st.on) return;
+    if (!st.t0) { st.pendingFinish = true; return; }
+    st.pendingFinish = false;
+    const A = ANIMS[el.dataset.anim];
+    const t = performance.now() - st.t0;
+    const wait = A.once ? Math.max(0, A.ms - t) + 900 : A.ms - (t % A.ms);
+    clearTimeout(st.stopTimer);
+    st.stopTimer = setTimeout(() => stop(el), wait);
+  }
+
+  function stop(el) {
+    const st = el._st;
+    st.on = false;
+    st.t0 = 0;
+    st.pendingFinish = false;
+    el.classList.remove('playing');
+    const img = el.querySelector('img.anim');
+    if (img) img.removeAttribute('src');
+    if (st.url) { URL.revokeObjectURL(st.url); st.url = null; }
+  }
+
+  function wire(el) {
+    el.addEventListener('pointerenter', e => {
+      if (e.pointerType === 'mouse' && calm.matches) return;   // reduced motion: click instead
+      start(el);
+    });
+    el.addEventListener('pointerleave', () => finish(el));
+    el.addEventListener('click', () => {
+      if (calm.matches) { start(el); finish(el); }
+    });
+  }
+
+  function build() {
+    field.textContent = '';
+    const W = field.clientWidth;
+    const isWide = wide.matches;
+    let pw, H, live;
+    if (isWide) {
+      // the field is the viewport: live pigs right of the type, faded ones behind it
+      pw = Math.round(Math.min(80, Math.max(56, W * 0.05)));
+      H = field.clientHeight;
+      const edge = grid.getBoundingClientRect().right + pw * 0.9;
+      live = x => x >= edge;
+    } else {
+      // the field is the whole page: live pigs in the band above the name, faded ones below
+      pw = Math.round(Math.min(64, Math.max(46, W * 0.07)));
+      H = field.clientHeight + 400;              // spare room in case the page grows after fonts load
+      const band = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+      const edge = band - pw * ASPECT * 0.55;
+      live = (x, y) => y < edge;
+    }
+    built = { w: W, h: H, wide: isWide };
+    const ph = pw * ASPECT;
+    const pts = poisson(-pw * 0.3, -ph * 0.3, W + pw * 0.3, H + ph * 0.3, pw * 1.7);
+    const next = shuffledBag();
+    const frag = document.createDocumentFragment();
+    const movers = [];
+    for (const [x, y] of pts) {
+      const size = Math.round(pw * (0.9 + Math.random() * 0.2));
+      const el = document.createElement('div');
+      el.className = 'pig';
+      el.style.left = (x - size / 2).toFixed(1) + 'px';
+      el.style.top = (y - size * ASPECT / 2).toFixed(1) + 'px';
+      el.style.setProperty('--pw', size + 'px');
+      el.style.setProperty('--rot', ((Math.random() - 0.5) * 14).toFixed(1) + 'deg');
+      el.style.setProperty('--flip', Math.random() < 0.5 ? '-1' : '1');
+      const img = new Image();
+      img.className = 'still';
+      img.alt = '';
+      img.decoding = 'async';
+      img.draggable = false;
+      img.src = STILL;
+      el.appendChild(img);
+      if (!live(x, y)) el.classList.add('faint');
+      else if (Math.random() < 0.4) movers.push(el);
+      frag.appendChild(el);
+    }
+    for (const el of movers) {
+      el.dataset.anim = next();
+      wire(el);
+    }
+    field.appendChild(frag);
+  }
+
+  build();
+
+  let resizeTimer;
+  const maybeRebuild = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (wide.matches !== built.wide || Math.abs(field.clientWidth - built.w) > 40 ||
+          field.clientHeight > built.h + (built.wide ? 60 : 0)) build();
+    }, 250);
+  };
+  addEventListener('resize', maybeRebuild);
+  if ('ResizeObserver' in window) new ResizeObserver(maybeRebuild).observe(field);
+
+  const hint = document.getElementById('pig-hint');
+  if (hint) {
+    hint.textContent = calm.matches ? 'Some of them move when you click them.'
+      : fine.matches ? 'Some of them move when you hover over them.'
+      : 'Some of them move when you tap them.';
+  }
+
+  // on mouse devices, fetch the animations once the page is idle so hovers start instantly
+  if (fine.matches) {
+    const preload = () => KEYS.forEach(getBlob);
+    const later = () => ('requestIdleCallback' in window
+      ? requestIdleCallback(preload, { timeout: 3000 }) : setTimeout(preload, 1500));
+    if (document.readyState === 'complete') later(); else addEventListener('load', later);
+  }
+})();
+</script>
+</body>
+</html>
